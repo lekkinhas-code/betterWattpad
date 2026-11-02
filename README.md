@@ -17,7 +17,7 @@ betterWattpad was started on 2 November 2026, four days into the outage. If you'
 - Keep underline and text alignment in PDFs
 - Add a first page with the story's title, author, last published date, word count, tags and link
 - Use the story and chapter titles as headings
-- Start each chapter on a new page in single-file PDFs
+- Start each chapter on a new page in single-file PDFs, with a bookmark to jump to it
 - Show the story's total character and word counts in the terminal when the export finishes
 
 ## Getting started

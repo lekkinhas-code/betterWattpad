@@ -7,7 +7,7 @@ from xml.sax.saxutils import escape, quoteattr
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate
+from reportlab.platypus import Flowable, PageBreak, Paragraph, SimpleDocTemplate
 
 TextRun = namedtuple("TextRun", "text bold italic underline")
 Block = namedtuple("Block", "runs alignment")
@@ -238,6 +238,23 @@ def _pdf_first_page(story_title, metadata, styles):
     return content
 
 
+class _Bookmark(Flowable):
+    """An invisible marker that adds the current page to the PDF's bookmarks."""
+
+    def __init__(self, title, key):
+        super().__init__()
+        self.title = title
+        self.key = key
+
+    def wrap(self, available_width, available_height):
+        return 0, 0
+
+    def draw(self):
+        # XYZ with a zoom of 0 goes to the top of the page and keeps the reader's zoom
+        self.canv.bookmarkPage(self.key, fit="XYZ", left=0, top=A4[1], zoom=0)
+        self.canv.addOutlineEntry(self.title, self.key, level=0)
+
+
 def story_to_markdown(story_title, metadata, chapters, output_path):
     """Write a first page of story details, then (title, html) chapters, to one .md file."""
     sections = [_markdown_first_page(story_title, metadata)]
@@ -247,10 +264,11 @@ def story_to_markdown(story_title, metadata, chapters, output_path):
 
 
 def story_to_pdf(story_title, metadata, chapters, output_path):
-    """Write a first page of story details, then (title, html) chapters, to one .pdf file."""
+    """Write a first page of story details, then bookmarked (title, html) chapters, to one .pdf file."""
     styles = getSampleStyleSheet()
     content = _pdf_first_page(story_title, metadata, styles)
-    for title, html in chapters:
+    for number, (title, html) in enumerate(chapters, start=1):
         content.append(PageBreak())
+        content.append(_Bookmark(title.strip(), f"chapter-{number}"))
         content += _pdf_chapter(title, html, styles)
     SimpleDocTemplate(str(output_path), pagesize=A4, title=story_title.strip()).build(content)
