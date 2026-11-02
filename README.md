@@ -45,8 +45,10 @@ Everything goes in the `exports/` folder, which git ignores:
 
 | Option | Example |
 |---|---|
-| One file | `exports/Story Title.pdf` |
-| One file per chapter | `exports/Story Title/01 - Chapter Title.pdf` |
+| One file | `exports/Story Title (83744060).pdf` |
+| One file per chapter | `exports/Story Title (83744060)/01 - Chapter Title.pdf` |
+
+The story ID in the name keeps different stories with the same title apart.
 
 If you already have that story in the same format and layout, the program asks before downloading it again. Answering `y` overwrites the earlier files.
 

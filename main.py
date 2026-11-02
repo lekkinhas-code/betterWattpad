@@ -26,6 +26,12 @@ def _safe_filename(name):
     return cleaned.strip(" .")[:100]
 
 
+def _export_name(story, story_id):
+    """Return the name for a story's exports, which stays unique when titles match."""
+    title = _safe_filename(story["title"])
+    return f"{title} ({story_id})" if title else story_id
+
+
 def story_id_from_input(text):
     """Return the story ID from an ID, story link or chapter link, or None if it's none of those."""
     text = text.strip()
@@ -79,7 +85,7 @@ def ask_yes_no(question):
 
 def already_downloaded(story, story_id, file_format, one_file):
     """Return whether this story already has an export in this format and layout."""
-    name = _safe_filename(story["title"]) or story_id
+    name = _export_name(story, story_id)
     if one_file:
         return (EXPORTS_DIR / f"{name}.{file_format}").exists()
     return any((EXPORTS_DIR / name).glob(f"*.{file_format}"))
@@ -130,7 +136,7 @@ def download_chapters(parts):
 
 def export_chapters(story, story_id, file_format):
     """Save each chapter of a story as its own file and return the folder and character count."""
-    folder = EXPORTS_DIR / (_safe_filename(story["title"]) or story_id)
+    folder = EXPORTS_DIR / _export_name(story, story_id)
     folder.mkdir(parents=True, exist_ok=True)
 
     characters = 0
@@ -152,7 +158,7 @@ def export_single_file(story, story_id, file_format):
         raise ValueError("no chapters had any text, so nothing was saved")
 
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    path = EXPORTS_DIR / f"{_safe_filename(story['title']) or story_id}.{file_format}"
+    path = EXPORTS_DIR / f"{_export_name(story, story_id)}.{file_format}"
     STORY_EXPORTERS[file_format](story["title"], story_metadata(story), chapters, path)
     return path, sum(count_characters(html) for _, html in chapters)
 
