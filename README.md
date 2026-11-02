@@ -10,13 +10,14 @@ betterWattpad was started on 2 November 2026, four days into the outage. If you'
 
 ## Features
 
-- Download a whole story using its ID
+- Download a whole story from its ID, its link or a link to any chapter
 - Save it as PDF or Markdown
 - Keep all chapters in one file, or save one file per chapter
 - Keep bold, italic and line breaks from the original chapter
 - Keep underline and text alignment in PDFs
 - Use the story and chapter titles as headings
 - Start each chapter on a new page in single-file PDFs
+- Show the story's total character count in the terminal when the export finishes
 
 ## Getting started
 
@@ -30,12 +31,12 @@ python main.py
 The program then asks three questions:
 
 ```
-Story ID: 83744060
+Story ID or link: https://www.wattpad.com/story/83744060-story-title
 Format (pdf/md): pdf
 Put all chapters in one file? (y/n): y
 ```
 
-The story ID is the number in the story's URL. For `wattpad.com/story/83744060-story-title`, it's `83744060`.
+You can paste a link to the story or to any of its chapters, or type just the story ID. The ID is the number in the story's URL: for `wattpad.com/story/83744060-story-title`, it's `83744060`. A chapter link always downloads the whole story, not just that chapter.
 
 ## Where files are saved
 
@@ -46,7 +47,7 @@ Everything goes in the `exports/` folder, which git ignores:
 | One file | `exports/Story Title.pdf` |
 | One file per chapter | `exports/Story Title/01 - Chapter Title.pdf` |
 
-Running the same export again overwrites the earlier files.
+If you already have that story in the same format and layout, the program asks before downloading it again. Answering `y` overwrites the earlier files.
 
 ## Project structure
 

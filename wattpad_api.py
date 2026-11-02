@@ -23,6 +23,11 @@ def get_story(story_id):
     return json.loads(_get(path))
 
 
+def get_story_id_for_part(part_id):
+    """Return the ID of the story that a chapter belongs to."""
+    return json.loads(_get(f"/v4/parts/{part_id}?fields=group(id)"))["group"]["id"]
+
+
 def get_chapter_html(part_id):
     """Return a chapter's text as HTML. part_id comes from get_story()'s parts."""
     return _get(f"/apiv2/storytext?id={part_id}")

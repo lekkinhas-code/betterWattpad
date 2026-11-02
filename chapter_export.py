@@ -121,6 +121,11 @@ def clean_html(html):
     return parser.blocks
 
 
+def count_characters(html):
+    """Return how many characters of text a chapter has, including spaces."""
+    return sum(len(run.text) for block in clean_html(html) for run in block.runs if run.text != LINE_BREAK)
+
+
 def _escape_markdown(text, at_line_start):
     text = MD_SPECIAL_CHARS.sub(r"\\\1", text)
     if not at_line_start:
