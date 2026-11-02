@@ -9,6 +9,7 @@ from chapter_export import (
     chapter_to_pdf,
     clean_html,
     count_characters,
+    count_words,
     story_to_markdown,
     story_to_pdf,
 )
@@ -107,12 +108,13 @@ def _author(user):
     return fullname or username
 
 
-def story_metadata(story):
+def story_metadata(story, words=None):
     """Return the labelled details shown on a story's first page, leaving out any that are missing."""
     published = (story.get("lastPublishedPart") or {}).get("createDate")
     details = {
         "Author": _author(story.get("user") or {}),
         "Last published": _format_date(published),
+        "Words": f"{words:,}" if words is not None else None,
         "Tags": ", ".join(story.get("tags") or []),
         "Link": story.get("url"),
     }
@@ -135,32 +137,42 @@ def download_chapters(parts):
 
 
 def export_chapters(story, story_id, file_format):
-    """Save each chapter of a story as its own file and return the folder and character count."""
+    """Save each chapter of a story as its own file and return the folder, character count and word count."""
     folder = EXPORTS_DIR / _export_name(story, story_id)
     folder.mkdir(parents=True, exist_ok=True)
+    export_first_chapter = STORY_EXPORTERS[file_format]
 
+    first_chapter = None
     characters = 0
+    words = 0
     for number, part, html in download_chapters(story["parts"]):
         path = folder / f"{number:02d} - {_safe_filename(part['title'])}.{file_format}"
         # Only the first saved chapter gets the page of story details
-        if characters == 0:
-            STORY_EXPORTERS[file_format](story["title"], story_metadata(story), [(part["title"], html)], path)
+        if first_chapter is None:
+            first_chapter = [(part["title"], html)], path
+            export_first_chapter(story["title"], story_metadata(story), *first_chapter)
         else:
             EXPORTERS[file_format](part["title"], html, path)
         characters += count_characters(html)
-    return folder, characters
+        words += count_words(html)
+
+    # The story's word count is only known now, so add it to the page of story details
+    if first_chapter is not None:
+        export_first_chapter(story["title"], story_metadata(story, words), *first_chapter)
+    return folder, characters, words
 
 
 def export_single_file(story, story_id, file_format):
-    """Save all of a story's chapters in one file and return its path and character count."""
+    """Save all of a story's chapters in one file and return its path, character count and word count."""
     chapters = [(part["title"], html) for _, part, html in download_chapters(story["parts"])]
     if not chapters:
         raise ValueError("no chapters had any text, so nothing was saved")
 
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     path = EXPORTS_DIR / f"{_export_name(story, story_id)}.{file_format}"
-    STORY_EXPORTERS[file_format](story["title"], story_metadata(story), chapters, path)
-    return path, sum(count_characters(html) for _, html in chapters)
+    words = sum(count_words(html) for _, html in chapters)
+    STORY_EXPORTERS[file_format](story["title"], story_metadata(story, words), chapters, path)
+    return path, sum(count_characters(html) for _, html in chapters), words
 
 
 def main():
@@ -177,7 +189,7 @@ def main():
                 return
 
         export = export_single_file if one_file else export_chapters
-        saved_to, characters = export(story, story_id, file_format)
+        saved_to, characters, words = export(story, story_id, file_format)
     except KeyboardInterrupt:
         print("\nCancelled.")
     except (OSError, ValueError) as error:
@@ -185,6 +197,7 @@ def main():
     else:
         print(f"\nDone! Saved to {saved_to}")
         print(f"Characters: {characters:,}")
+        print(f"Words: {words:,}")
 
 
 if __name__ == "__main__":

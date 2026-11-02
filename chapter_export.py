@@ -126,6 +126,15 @@ def count_characters(html):
     return sum(len(run.text) for block in clean_html(html) for run in block.runs if run.text != LINE_BREAK)
 
 
+def count_words(html):
+    """Return how many words a chapter has, ignoring standalone symbols like dashes."""
+    words = 0
+    for block in clean_html(html):
+        text = "".join(run.text for run in block.runs)
+        words += sum(any(char.isalnum() for char in token) for token in text.split())
+    return words
+
+
 def _escape_markdown(text, at_line_start):
     text = MD_SPECIAL_CHARS.sub(r"\\\1", text)
     if not at_line_start:
