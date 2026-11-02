@@ -18,9 +18,9 @@ def _get(path):
 
 
 def get_story(story_id):
-    """Return a story's id, title, numParts and parts (each with id and title)."""
-    path = f"/api/v3/stories/{story_id}?fields=id,title,numParts,parts(id,title)"
-    return json.loads(_get(path))
+    """Return a story's details, including its parts (each with id and title)."""
+    fields = "id,title,numParts,url,lastPublishedPart,tags,user(name,fullname,username),parts(id,title)"
+    return json.loads(_get(f"/api/v3/stories/{story_id}?fields={fields}"))
 
 
 def get_story_id_for_part(part_id):

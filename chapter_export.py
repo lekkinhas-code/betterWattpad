@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from html.parser import HTMLParser
 from pathlib import Path
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
@@ -207,22 +207,41 @@ def chapter_to_pdf(title, html, output_path):
     SimpleDocTemplate(str(output_path), pagesize=A4, title=title.strip()).build(content)
 
 
-def story_to_markdown(story_title, chapters, output_path):
-    """Write (title, html) chapters to one .md file, with a page break between them."""
-    heading = f"# {_escape_markdown(story_title.strip(), False)}"
-    chapter_texts = [_markdown_chapter(title, html, "##") for title, html in chapters]
-    body = f"\n\n{MD_PAGE_BREAK}\n\n".join(chapter_texts)
-    Path(output_path).write_text(f"{heading}\n\n{body}\n", encoding="utf-8")
+def _markdown_first_page(story_title, metadata):
+    lines = [f"# {_escape_markdown(story_title.strip(), False)}"]
+    for label, value in metadata.items():
+        shown = f"<{value}>" if value.startswith("https://") else _escape_markdown(value, False)
+        lines.append(f"**{label}:** {shown}")
+    return "\n\n".join(lines)
 
 
-def story_to_pdf(story_title, chapters, output_path):
-    """Write (title, html) chapters to one .pdf file, with a page break between them."""
-    story_title = story_title.strip()
-    styles = getSampleStyleSheet()
+def _pdf_first_page(story_title, metadata, styles):
     title_style = ParagraphStyle("StoryTitle", parent=styles["Title"], fontSize=24, leading=30, spaceAfter=24)
-    content = [Paragraph(escape(story_title), title_style)]
-    for index, (title, html) in enumerate(chapters):
-        if index > 0:
-            content.append(PageBreak())
+    detail_style = ParagraphStyle(
+        "StoryDetail", parent=styles["BodyText"], fontSize=11, leading=15, spaceAfter=8, alignment=TA_CENTER
+    )
+    content = [Paragraph(escape(story_title.strip()), title_style)]
+    for label, value in metadata.items():
+        shown = escape(value)
+        if value.startswith("https://"):
+            shown = f'<a href={quoteattr(value)} color="blue">{shown}</a>'
+        content.append(Paragraph(f"<b>{escape(label)}:</b> {shown}", detail_style))
+    return content
+
+
+def story_to_markdown(story_title, metadata, chapters, output_path):
+    """Write a first page of story details, then (title, html) chapters, to one .md file."""
+    sections = [_markdown_first_page(story_title, metadata)]
+    sections += [_markdown_chapter(title, html, "##") for title, html in chapters]
+    body = f"\n\n{MD_PAGE_BREAK}\n\n".join(sections)
+    Path(output_path).write_text(f"{body}\n", encoding="utf-8")
+
+
+def story_to_pdf(story_title, metadata, chapters, output_path):
+    """Write a first page of story details, then (title, html) chapters, to one .pdf file."""
+    styles = getSampleStyleSheet()
+    content = _pdf_first_page(story_title, metadata, styles)
+    for title, html in chapters:
+        content.append(PageBreak())
         content += _pdf_chapter(title, html, styles)
-    SimpleDocTemplate(str(output_path), pagesize=A4, title=story_title).build(content)
+    SimpleDocTemplate(str(output_path), pagesize=A4, title=story_title.strip()).build(content)

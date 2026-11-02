@@ -1,5 +1,6 @@
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -84,6 +85,34 @@ def already_downloaded(story, story_id, file_format, one_file):
     return any((EXPORTS_DIR / name).glob(f"*.{file_format}"))
 
 
+def _format_date(date):
+    try:
+        parsed = datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError):
+        return date
+    return f"{parsed.day} {parsed:%B %Y}"
+
+
+def _author(user):
+    username = user.get("username") or user.get("name")
+    fullname = user.get("fullname")
+    if fullname and username and fullname != username:
+        return f"{fullname} (@{username})"
+    return fullname or username
+
+
+def story_metadata(story):
+    """Return the labelled details shown on a story's first page, leaving out any that are missing."""
+    published = (story.get("lastPublishedPart") or {}).get("createDate")
+    details = {
+        "Author": _author(story.get("user") or {}),
+        "Last published": _format_date(published),
+        "Tags": ", ".join(story.get("tags") or []),
+        "Link": story.get("url"),
+    }
+    return {label: value for label, value in details.items() if value}
+
+
 def download_chapters(parts):
     """Yield (number, part, html) for each chapter that has text."""
     for number, part in enumerate(parts, start=1):
@@ -106,8 +135,12 @@ def export_chapters(story, story_id, file_format):
 
     characters = 0
     for number, part, html in download_chapters(story["parts"]):
-        filename = f"{number:02d} - {_safe_filename(part['title'])}.{file_format}"
-        EXPORTERS[file_format](part["title"], html, folder / filename)
+        path = folder / f"{number:02d} - {_safe_filename(part['title'])}.{file_format}"
+        # Only the first saved chapter gets the page of story details
+        if characters == 0:
+            STORY_EXPORTERS[file_format](story["title"], story_metadata(story), [(part["title"], html)], path)
+        else:
+            EXPORTERS[file_format](part["title"], html, path)
         characters += count_characters(html)
     return folder, characters
 
@@ -120,7 +153,7 @@ def export_single_file(story, story_id, file_format):
 
     EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
     path = EXPORTS_DIR / f"{_safe_filename(story['title']) or story_id}.{file_format}"
-    STORY_EXPORTERS[file_format](story["title"], chapters, path)
+    STORY_EXPORTERS[file_format](story["title"], story_metadata(story), chapters, path)
     return path, sum(count_characters(html) for _, html in chapters)
 
 

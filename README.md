@@ -15,6 +15,7 @@ betterWattpad was started on 2 November 2026, four days into the outage. If you'
 - Keep all chapters in one file, or save one file per chapter
 - Keep bold, italic and line breaks from the original chapter
 - Keep underline and text alignment in PDFs
+- Add a first page with the story's title, author, last published date, tags and link
 - Use the story and chapter titles as headings
 - Start each chapter on a new page in single-file PDFs
 - Show the story's total character count in the terminal when the export finishes
